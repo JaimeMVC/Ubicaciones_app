@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Cargar Excel</title></head>
+<body>
+<h1>Cargar Excel (PN / Ubicaciones / Descripción)</h1>
+
+{% if messages %}
+  <ul>
+    {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+  </ul>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <p><input type="file" name="archivo" accept=".xlsx,.xls" required></p>
+  <button type="submit">Subir e importar</button>
+</form>
+
+<p><a href="{% url 'buscar_material' %}">Volver al inicio</a></p>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<h1>Buscar PN</h1>
+<form method="get">
+    <input name="q" placeholder="PN" value="{{query}}">
+    <button>Buscar</button>
+</form>
+<ul>
+{% for m in materiales %}
+<li><a href="{% url 'listado_ubicaciones' m.pn %}">{{m.pn}}</a></li>
+{% endfor %}
+</ul>

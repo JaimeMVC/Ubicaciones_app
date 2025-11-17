@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Informe PN {{ pn }}</title>
+</head>
+<body>
+  {% if messages %}
+    <ul>
+      {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <h1>Informe de avance — PN {{ pn }}</h1>
+  <p>
+    Total: <b>{{ total }}</b> |
+    Revisadas: <b>{{ revisadas }}</b> |
+    Pendientes: <b>{{ pendientes }}</b> |
+    Avance: <b>{{ porcentaje }}%</b>
+  </p>
+
+  <p>
+    <a href="{% url 'export_csv' pn %}">⬇ Descargar CSV</a> |
+    <a href="{% url 'guardar_informe' pn %}">💾 Guardar informe</a> |
+    <a href="{% url 'listado_ubicaciones' pn %}">← Volver al listado</a> |
+    <a href="{% url 'buscar_material' %}">🏠 Inicio</a>
+  </p>
+
+  <h3>Detalle</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <thead>
+      <tr><th>Ubicación</th><th>Descripción</th><th>Revisado</th><th>Fecha revisión</th></tr>
+    </thead>
+    <tbody>
+    {% for u in ubicaciones %}
+      <tr>
+        <td>{{ u.ubicacion }}</td>
+        <td>{{ u.descripcion }}</td>
+        <td>{% if u.is_checked %}Sí{% else %}No{% endif %}</td>
+        <td>{% if u.checked_at %}{{ u.checked_at|date:"d/m/Y H:i" }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Histórico guardado (últimos 10)</h3>
+  {% if snapshots %}
+    <table border="1" cellspacing="0" cellpadding="4">
+      <thead>
+        <tr><th>Fecha</th><th>Total</th><th>Revisadas</th><th>%</th></tr>
+      </thead>
+      <tbody>
+      {% for s in snapshots %}
+        <tr>
+          <td>{{ s.created_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ s.total }}</td>
+          <td>{{ s.revisadas }}</td>
+          <td>{{ s.porcentaje }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay informes guardados todavía.</p>
+  {% endif %}
+</body>
+</html>

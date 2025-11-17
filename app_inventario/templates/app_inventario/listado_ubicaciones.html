@@ -1,0 +1,30 @@
+<h1>PN {{pn}}</h1>
+<p>{{revisadas}} / {{total}} ({{porcentaje}}%)</p>
+<form id="csrf">{% csrf_token %}</form>
+<table border=1>
+<tr><th>Ok</th><th>Ubicación</th><th>Descripción</th><th>Fecha</th></tr>
+{% for u in ubicaciones %}
+<tr>
+<td><input type="checkbox" data-id="{{u.id}}" class="ck" {% if u.is_checked %}checked{% endif %}></td>
+<td>{{u.ubicacion}}</td>
+<td>{{u.descripcion}}</td>
+<td>{% if u.checked_at %}{{u.checked_at}}{% endif %}</td>
+</tr>
+{% endfor %}
+<p>
+  <a href="{% url 'informe_avance' pn %}">Ver informe</a> |
+  <a href="{% url 'buscar_material' %}">Volver al buscador</a>
+</p>
+</table>
+<script>
+let csr=document.querySelector('#csrf input').value;
+document.querySelectorAll('.ck').forEach(c=>{
+ c.onchange=()=>{
+  fetch("{% url 'toggle_check' %}",{
+   method:"POST",
+   headers:{"Content-Type":"application/x-www-form-urlencoded","X-CSRFToken":csr},
+   body:`id=${c.dataset.id}&checked=${c.checked}`
+  })
+ }
+})
+</script>
