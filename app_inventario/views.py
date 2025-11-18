@@ -3,6 +3,9 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.urls import reverse
 from django.contrib import messages
+import csv
+from django.http import HttpResponse
+
 
 import pandas as pd
 from django.db import transaction
@@ -210,3 +213,73 @@ def historial_pn(request, pn):
         "pn": pn,
         "data": data,
     })
+def informe_sesion(request, session_id):
+    """Informe detallado de una sesión de conteo."""
+    session = get_object_or_404(CountSession, id=session_id)
+    pn = session.pn
+
+    base_ubics = list(LocationBase.objects.filter(pn=pn, activo=True).order_by("ubicacion"))
+    detalles = CountDetail.objects.filter(session=session)
+    detalles_by_base = {d.base_id: d for d in detalles}
+
+    rows = []
+    total = len(base_ubics)
+    revisadas = 0
+    for b in base_ubics:
+        detalle = detalles_by_base.get(b.id)
+        if detalle and detalle.revisado:
+            revisadas += 1
+        rows.append({"base": b, "detalle": detalle})
+
+    porcentaje = round(revisadas / total * 100, 1) if total else 0.0
+
+    return render(request, "app_inventario/informe_sesion.html", {
+        "session": session,
+        "pn": pn,
+        "rows": rows,
+        "total": total,
+        "revisadas": revisadas,
+        "porcentaje": porcentaje,
+    })
+
+
+def exportar_sesion_csv(request, session_id):
+    """Exporta a CSV una sesión de conteo."""
+    session = get_object_or_404(CountSession, id=session_id)
+    pn = session.pn
+
+    base_ubics = list(LocationBase.objects.filter(pn=pn, activo=True).order_by("ubicacion"))
+    detalles = CountDetail.objects.filter(session=session)
+    detalles_by_base = {d.base_id: d for d in detalles}
+
+    # Preparamos respuesta CSV
+    filename = f"avance_{pn}_sesion_{session.id}.csv"
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        "PN",
+        "Operador",
+        "Fecha sesión",
+        "Ubicación",
+        "Descripción",
+        "Revisado",
+        "Fecha revisión",
+        "Comentario sesión",
+    ])
+
+    for b in base_ubics:
+        detalle = detalles_by_base.get(b.id)
+        writer.writerow([
+            pn,
+            session.operador,
+            session.creado_en.strftime("%Y-%m-%d %H:%M"),
+            b.ubicacion,
+            b.descripcion,
+            "SI" if (detalle and detalle.revisado) else "NO",
+            detalle.fecha_revision.strftime("%Y-%m-%d %H:%M") if (detalle and detalle.fecha_revision) else "",
+            session.comentario or "",
+        ])
+
+    return response
