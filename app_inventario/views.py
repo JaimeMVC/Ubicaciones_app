@@ -1,11 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.urls import reverse
 from django.contrib import messages
 import csv
-from django.http import HttpResponse
-
 
 import pandas as pd
 from django.db import transaction
@@ -24,14 +22,26 @@ def _norm(s: str) -> str:
     if s is None:
         return ""
     s = str(s).strip().lower()
-    s = (s.replace("á", "a").replace("é", "e").replace("í", "i")
-             .replace("ó", "o").replace("ú", "u").replace("ñ", "n"))
+    s = (
+        s.replace("á", "a")
+         .replace("é", "e")
+         .replace("í", "i")
+         .replace("ó", "o")
+         .replace("ú", "u")
+         .replace("ñ", "n")
+    )
     for ch in [" ", "\t", "\n", "-", "_", ".", "/"]:
         s = s.replace(ch, "")
     return s
 
 
 def _import_df_to_locationbase(df: pd.DataFrame) -> int:
+    """
+    Importa un DataFrame al modelo LocationBase SIN borrar datos.
+    - Normaliza nombres de columnas.
+    - Marca todas las ubicaciones como inactivas.
+    - Para cada fila del Excel hace update_or_create(pn, ubicacion) y las marca activas.
+    """
     cols_map = {_norm(c): c for c in df.columns if isinstance(c, str)}
 
     def pick(cands):
@@ -65,21 +75,26 @@ def _import_df_to_locationbase(df: pd.DataFrame) -> int:
     df = df.dropna(subset=["pn", "ubicacion"])
     df = df.drop_duplicates(subset=["pn", "ubicacion"], keep="last")
 
-    objs = [
-        LocationBase(
-            pn=row["pn"],
-            ubicacion=row["ubicacion"],
-            descripcion=row["descripcion"],
-            activo=True,
-        )
-        for _, row in df.iterrows()
-    ]
-
     with transaction.atomic():
-        LocationBase.objects.all().delete()
-        LocationBase.objects.bulk_create(objs, batch_size=1000)
+        # 1) Marcamos todas las ubicaciones como inactivas (NO borramos nada)
+        LocationBase.objects.all().update(activo=False)
 
-    return len(objs)
+        # 2) Actualizamos o creamos cada combinación PN+Ubicación y la dejamos activa
+        for _, row in df.iterrows():
+            pn = row["pn"]
+            ubic = row["ubicacion"]
+            desc = row["descripcion"]
+
+            LocationBase.objects.update_or_create(
+                pn=pn,
+                ubicacion=ubic,
+                defaults={
+                    "descripcion": desc,
+                    "activo": True,
+                },
+            )
+
+    return len(df)
 
 
 # ========= Vistas principales =========
@@ -213,6 +228,8 @@ def historial_pn(request, pn):
         "pn": pn,
         "data": data,
     })
+
+
 def informe_sesion(request, session_id):
     """Informe detallado de una sesión de conteo."""
     session = get_object_or_404(CountSession, id=session_id)
