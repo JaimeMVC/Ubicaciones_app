@@ -35,66 +35,76 @@ def _norm(s: str) -> str:
     return s
 
 
-def _import_df_to_locationbase(df: pd.DataFrame) -> int:
-    """
-    Importa un DataFrame al modelo LocationBase SIN borrar datos.
-    - Normaliza nombres de columnas.
-    - Marca todas las ubicaciones como inactivas.
-    - Para cada fila del Excel hace update_or_create(pn, ubicacion) y las marca activas.
-    """
-    cols_map = {_norm(c): c for c in df.columns if isinstance(c, str)}
+from openpyxl import load_workbook
 
-    def pick(cands):
-        for k in cands:
-            if k in cols_map:
-                return cols_map[k]
+def _import_df_to_locationbase(file) -> int:
+    """
+    Importa Excel sin usar pandas.
+    Procesa fila por fila en streaming → no consume RAM.
+    """
+
+    wb = load_workbook(file, read_only=True, data_only=True)
+    ws = wb.active
+
+    # Leer encabezados
+    headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+
+    # Normalizar nombres
+    def norm(s):
+        return (
+            s.lower()
+            .replace(" ", "")
+            .replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u").replace("ñ","n")
+            .replace("_","").replace("-","").replace(".","").replace("/","")
+        )
+
+    norm_headers = [norm(h) for h in headers]
+
+    def pick(names):
+        for name in names:
+            if name in norm_headers:
+                return norm_headers.index(name)
         return None
 
-    col_pn = pick(["pn", "partnumber", "material", "codigo", "codigomaterial", "materialcode"])
-    col_ubi = pick(["ubicaciones", "ubicacion", "location", "ubicacionessap", "ubicacionfisica"])
-    col_des = pick(["descripcion", "description", "desc"])
+    idx_pn = pick(["pn","partnumber","material","codigo","codigomaterial"])
+    idx_ubi = pick(["ubicacion","ubicaciones","location"])
+    idx_des = pick(["descripcion","description","desc"])
 
-    if not col_pn or not col_ubi:
-        raise ValueError(f"Faltan columnas PN o Ubicaciones. Encabezados: {list(df.columns)}")
+    if idx_pn is None or idx_ubi is None:
+        raise ValueError("No se encontraron columnas PN y Ubicacion")
 
-    if not col_des:
-        df["__descripcion__"] = ""
-        col_des = "__descripcion__"
+    # Marcar todo como inactivo
+    LocationBase.objects.update(activo=False)
 
-    df = df[[col_pn, col_ubi, col_des]].rename(columns={
-        col_pn: "pn",
-        col_ubi: "ubicacion",
-        col_des: "descripcion",
-    })
+    count = 0
+    rows_to_create = []
 
-    df["pn"] = df["pn"].astype(str).str.strip()
-    df["ubicacion"] = df["ubicacion"].astype(str).str.strip()
-    df["descripcion"] = df["descripcion"].astype(str).fillna("").str.strip()
+    for row in ws.iter_rows(min_row=2):
+        pn = row[idx_pn].value if idx_pn < len(row) else None
+        ub = row[idx_ubi].value if idx_ubi < len(row) else None
+        desc = row[idx_des].value if idx_des is not None and idx_des < len(row) else ""
 
-    df = df[(df["pn"] != "") & (df["ubicacion"] != "")]
-    df = df.dropna(subset=["pn", "ubicacion"])
-    df = df.drop_duplicates(subset=["pn", "ubicacion"], keep="last")
+        if not pn or not ub:
+            continue
 
-    with transaction.atomic():
-        # 1) Marcamos todas las ubicaciones como inactivas (NO borramos nada)
-        LocationBase.objects.all().update(activo=False)
+        pn = str(pn).strip()
+        ub = str(ub).strip()
+        desc = str(desc).strip() if desc else ""
 
-        # 2) Actualizamos o creamos cada combinación PN+Ubicación y la dejamos activa
-        for _, row in df.iterrows():
-            pn = row["pn"]
-            ubic = row["ubicacion"]
-            desc = row["descripcion"]
+        if not pn or not ub:
+            continue
 
-            LocationBase.objects.update_or_create(
-                pn=pn,
-                ubicacion=ubic,
-                defaults={
-                    "descripcion": desc,
-                    "activo": True,
-                },
-            )
+        # update_or_create no consume memoria
+        LocationBase.objects.update_or_create(
+            pn=pn,
+            ubicacion=ub,
+            defaults={"descripcion": desc, "activo": True}
+        )
 
-    return len(df)
+        count += 1
+
+    return count
+
 
 
 # ========= Vistas principales =========
@@ -103,8 +113,8 @@ def cargar_excel(request):
     """Subir Excel desde la web y actualizar LocationBase."""
     if request.method == "POST" and request.FILES.get("archivo"):
         try:
-            df = pd.read_excel(request.FILES["archivo"], engine="openpyxl")
-            n = _import_df_to_locationbase(df)
+            n = _import_df_to_locationbase(request.FILES["archivo"])
+
             messages.success(request, f"Archivo importado correctamente. Filas procesadas: {n}.")
             return redirect("buscar_material")
         except Exception as e:
