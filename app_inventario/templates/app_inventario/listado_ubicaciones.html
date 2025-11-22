@@ -1,184 +1,211 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>PN {{ pn }}</title>
-</head>
-<body>
-<h1>PN {{ pn }}</h1>
+{% extends "app_inventario/base.html" %}
 
-{# Mensajes Django #}
-{% if messages %}
-  <ul>
-    {% for m in messages %}
-      <li>{{ m }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
+{% block title %}PN {{ pn }} · CEVA{% endblock %}
 
-{# ================== SIN SESIÓN ACTIVA ================== #}
+{% block extra_head %}
+<!-- aquí podrías agregar CSS o JS extra si lo necesitás -->
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>PN {{ pn }}</h1>
+</div>
+
 {% if not session %}
 
-  <h3>Iniciar nueva sesión de conteo</h3>
-  <form method="post">
-    {% csrf_token %}
-    <p>Operador: <input type="text" name="operador" required></p>
-    <p>Comentario: <input type="text" name="comentario"></p>
-    <button type="submit">Iniciar sesión</button>
-  </form>
+    <!-- SIN SESIÓN ACTIVA -->
+    <div class="card">
+        <h3>Iniciar nueva sesión de conteo</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom:10px;">
+                <label for="id_operador">Operador</label>
+                <input type="text" id="id_operador" name="operador" required>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label for="id_comentario">Comentario</label>
+                <input type="text" id="id_comentario" name="comentario">
+            </div>
+            <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+            <a href="{% url 'buscar_material' %}" class="btn btn-secondary">Volver al buscador</a>
+        </form>
+    </div>
 
-  <h3>Sesiones anteriores para este PN</h3>
-  {% if sesiones_pn %}
-    <ul>
-      {% for s in sesiones_pn %}
-        <li>
-          {{ s.creado_en|date:"d/m/Y H:i" }} – {{ s.operador }}
-          (<a href="{% url 'listado_ubicaciones' pn %}?session={{ s.id }}">Abrir</a>)
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No hay sesiones previas para este PN.</p>
-  {% endif %}
+    <div class="card">
+        <h3>Sesiones anteriores para este PN</h3>
+        {% if sesiones_pn %}
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Operador</th>
+                            <th>Comentario</th>
+                            <th class="center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for s in sesiones_pn %}
+                        <tr>
+                            <td>{{ s.creado_en|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.operador }}</td>
+                            <td>{{ s.comentario }}</td>
+                            <td class="center">
+                                <a href="{% url 'listado_ubicaciones' pn %}?session={{ s.id }}" class="btn btn-secondary">
+                                    Abrir
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No hay sesiones previas para este PN.</p>
+        {% endif %}
+    </div>
 
-  <p>
-    <a href="{% url 'buscar_material' %}">Volver al buscador</a> |
-    <a href="{% url 'historial_pn' pn %}">Ver historial</a>
-  </p>
-
-{# ================== CON SESIÓN ACTIVA ================== #}
 {% else %}
 
-  <p>
-    Sesión actual: <b>{{ session.operador }}</b>
-    ({{ session.creado_en|date:"d/m/Y H:i" }})<br>
-    Comentario: {{ session.comentario }}
-  </p>
+    <!-- CON SESIÓN ACTIVA -->
+    <div class="card">
+        <h3>Sesión actual</h3>
+        <p style="margin:0;">
+            <b>Operador:</b> {{ session.operador }}<br>
+            <b>Fecha:</b> {{ session.creado_en|date:"d/m/Y H:i" }}<br>
+            <b>Comentario:</b> {{ session.comentario }}
+        </p>
+        <p style="margin-top:8px;">
+            <b>Avance:</b> {{ revisadas }} / {{ total }} ({{ porcentaje }}%)
+        </p>
+        <div class="actions-inline">
+            <a href="{% url 'buscar_material' %}" class="btn btn-secondary">Volver al buscador</a>
+            <a href="{% url 'historial_pn' pn %}" class="btn btn-link">Ver historial</a>
+            <a href="{% url 'informe_sesion' session.id %}" class="btn btn-link">Ver informe de esta sesión</a>
+            <a href="{% url 'exportar_listado_pdf' pn %}" class="btn btn-link">
+                Descargar listado en PDF para imprimir
+            </a>
+        </div>
+    </div>
 
-  <p>Avance: {{ revisadas }} / {{ total }} ({{ porcentaje }}%)</p>
+    <div class="card">
+        <!-- CSRF independiente para los fetch() -->
+        <form id="csrf-form">{% csrf_token %}</form>
 
-  <p>
-    <a href="{% url 'buscar_material' %}">Volver al buscador</a> |
-    <a href="{% url 'historial_pn' pn %}">Ver historial</a> |
-    <a href="{% url 'informe_sesion' session.id %}">Ver informe de esta sesión</a>
-    <a href="{% url 'exportar_listado_pdf' pn %}">Descargar listado en PDF para imprimir</a>
-  </p>
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="center">Ok</th>
+                        <th>Ubicación</th>
+                        <th>Descripción</th>
+                        <th class="center">Cantidad</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="center">
+                            <input
+                                type="checkbox"
+                                class="check-ubicacion"
+                                data-base-id="{{ row.base.id }}"
+                                data-session-id="{{ session.id }}"
+                                {% if row.detalle and row.detalle.revisado %}checked{% endif %}
+                            >
+                        </td>
+                        <td>{{ row.base.ubicacion }}</td>
+                        <td>{{ row.base.descripcion }}</td>
+                        <td class="center">
+                            <input
+                                type="number"
+                                min="0"
+                                class="input-cantidad"
+                                data-base-id="{{ row.base.id }}"
+                                data-session-id="{{ session.id }}"
+                                value="{% if row.detalle and row.detalle.cantidad is not None %}{{ row.detalle.cantidad }}{% else %}0{% endif %}"
+                                style="width:80px;"
+                            >
+                        </td>
+                        <td>
+                            {% if row.detalle and row.detalle.fecha_revision %}
+                                {{ row.detalle.fecha_revision|date:"d/m/Y H:i" }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-  {# CSRF independiente para los fetch() #}
-  <form id="csrf-form">{% csrf_token %}</form>
+        <div id="msg" style="margin-top:8px; font-size:13px;"></div>
+    </div>
 
-  <table border="1" cellspacing="0" cellpadding="4">
-    <thead>
-      <tr>
-        <th>Ok</th>
-        <th>Ubicación</th>
-        <th>Descripción</th>
-        <th>Cantidad</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for row in rows %}
-      <tr>
-        <td style="text-align:center;">
-          <input
-            type="checkbox"
-            class="check-ubicacion"
-            data-base-id="{{ row.base.id }}"
-            data-session-id="{{ session.id }}"
-            {% if row.detalle and row.detalle.revisado %}checked{% endif %}
-          >
-        </td>
-        <td>{{ row.base.ubicacion }}</td>
-        <td>{{ row.base.descripcion }}</td>
-        <td>
-          <input
-            type="number"
-            min="0"
-            class="input-cantidad"
-            data-base-id="{{ row.base.id }}"
-            data-session-id="{{ session.id }}"
-            value="{% if row.detalle and row.detalle.cantidad is not None %}{{ row.detalle.cantidad }}{% else %}0{% endif %}"
-            style="width:80px;"
-          >
-        </td>
-        <td>
-          {% if row.detalle and row.detalle.fecha_revision %}
-            {{ row.detalle.fecha_revision|date:"d/m/Y H:i" }}
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <script>
+        // CSRF para los fetch()
+        const csrftoken = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]').value;
 
-  <div id="msg" style="margin-top:8px;"></div>
+        // -------- Checkbox Ok (toggle_check) ----------
+        document.querySelectorAll('.check-ubicacion').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const baseId = cb.dataset.baseId;
+            const sessionId = cb.dataset.sessionId;
+            const checked = cb.checked;
 
-  <script>
-    // CSRF para los fetch()
-    const csrftoken = document.querySelector('#csrf-form input[name=csrfmiddlewaretoken]').value;
-
-    // -------- Checkbox Ok (toggle_check) ----------
-    document.querySelectorAll('.check-ubicacion').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const baseId = cb.dataset.baseId;
-        const sessionId = cb.dataset.sessionId;
-        const checked = cb.checked;
-
-        fetch("{% url 'toggle_check' %}", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": csrftoken
-          },
-          body: new URLSearchParams({
-            base_id: baseId,
-            session_id: sessionId,
-            checked: checked
-          })
-        })
-        .then(res => {
-          document.getElementById('msg').textContent =
-            res.ok ? "Guardado OK" : "Error al guardar";
-          if (!res.ok) cb.checked = !checked;
-        })
-        .catch(() => {
-          document.getElementById('msg').textContent = "Error de conexión";
-          cb.checked = !checked;
+            fetch("{% url 'toggle_check' %}", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": csrftoken
+              },
+              body: new URLSearchParams({
+                base_id: baseId,
+                session_id: sessionId,
+                checked: checked
+              })
+            })
+            .then(res => {
+              document.getElementById('msg').textContent =
+                res.ok ? "Guardado OK" : "Error al guardar";
+              if (!res.ok) cb.checked = !checked;
+            })
+            .catch(() => {
+              document.getElementById('msg').textContent = "Error de conexión";
+              cb.checked = !checked;
+            });
+          });
         });
-      });
-    });
 
-    // -------- Cantidad encontrada (actualizar_cantidad) ----------
-    document.querySelectorAll('.input-cantidad').forEach(inp => {
-      inp.addEventListener('change', () => {
-        const baseId = inp.dataset.baseId;
-        const sessionId = inp.dataset.sessionId;
-        const cantidad = inp.value;
+        // -------- Cantidad encontrada (actualizar_cantidad) ----------
+        document.querySelectorAll('.input-cantidad').forEach(inp => {
+          inp.addEventListener('change', () => {
+            const baseId = inp.dataset.baseId;
+            const sessionId = inp.dataset.sessionId;
+            const cantidad = inp.value;
 
-        fetch("{% url 'actualizar_cantidad' %}", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": csrftoken
-          },
-          body: new URLSearchParams({
-            base_id: baseId,
-            session_id: sessionId,
-            cantidad: cantidad
-          })
-        })
-        .then(res => {
-          document.getElementById('msg').textContent =
-            res.ok ? "Cantidad guardada" : "Error al guardar cantidad";
-        })
-        .catch(() => {
-          document.getElementById('msg').textContent = "Error de conexión";
+            fetch("{% url 'actualizar_cantidad' %}", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": csrftoken
+              },
+              body: new URLSearchParams({
+                base_id: baseId,
+                session_id: sessionId,
+                cantidad: cantidad
+              })
+            })
+            .then(res => {
+              document.getElementById('msg').textContent =
+                res.ok ? "Cantidad guardada" : "Error al guardar cantidad";
+            })
+            .catch(() => {
+              document.getElementById('msg').textContent = "Error de conexión";
+            });
+          });
         });
-      });
-    });
-  </script>
+    </script>
 
 {% endif %}
-</body>
-</html>
+{% endblock %}

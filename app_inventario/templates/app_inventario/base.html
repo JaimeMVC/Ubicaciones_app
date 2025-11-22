@@ -1,0 +1,280 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Ubicaciones CEVA{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        :root {
+            --ceva-navy: #002b5c;
+            --ceva-red: #e2001a;
+            --ceva-light: #f5f5f5;
+            --ceva-border: #d0d0d0;
+            --text-main: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: var(--ceva-light);
+            color: var(--text-main);
+        }
+
+        /* HEADER */
+        .topbar {
+            background: var(--ceva-navy);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,.15);
+        }
+
+        .topbar-brand {
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        .topbar-brand span {
+            color: var(--ceva-red);
+        }
+
+        .topbar-sub {
+            font-size: 12px;
+            opacity: .9;
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .page-wrapper {
+            max-width: 1000px;
+            margin: 24px auto 40px auto;
+            padding: 0 16px;
+        }
+
+        h1, h2, h3 {
+            color: var(--ceva-navy);
+            margin-top: 0;
+        }
+
+        .page-header {
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--ceva-navy);
+            padding-bottom: 6px;
+        }
+
+        /* CARDS / BLOQUES */
+        .card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--ceva-border);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+
+        /* FORMULARIOS / INPUTS */
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--ceva-border);
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--ceva-navy);
+            box-shadow: 0 0 0 2px rgba(0,43,92,.15);
+        }
+
+        /* BOTONES / LINKS */
+        .btn {
+            display: inline-block;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            padding: 8px 14px;
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--ceva-red);
+            border-color: var(--ceva-red);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c20015;
+            border-color: #c20015;
+            box-shadow: 0 2px 4px rgba(0,0,0,.15);
+        }
+
+        .btn-secondary {
+            background: white;
+            border-color: var(--ceva-navy);
+            color: var(--ceva-navy);
+        }
+
+        .btn-secondary:hover {
+            background: var(--ceva-navy);
+            color: white;
+        }
+
+        .btn-link {
+            border: none;
+            background: none;
+            color: var(--ceva-navy);
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+            color: var(--ceva-red);
+        }
+
+        .actions-inline .btn {
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+
+        /* TABLAS */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table.table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+            font-size: 13px;
+        }
+
+        .table thead {
+            background: var(--ceva-navy);
+            color: white;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid var(--ceva-border);
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .table th {
+            font-weight: 600;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .table tbody tr:hover {
+            background: #f0f4ff;
+        }
+
+        .table td.center,
+        .table th.center {
+            text-align: center;
+        }
+
+        /* MENSAJES DJANGO */
+        .messages {
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .message-success {
+            background: #e6f4ea;
+            border: 1px solid #a8d5b5;
+            color: #256029;
+        }
+
+        .message-error {
+            background: #fcebea;
+            border: 1px solid #f5c2c0;
+            color: #842029;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            font-size: 11px;
+            color: #777;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 12px 14px;
+            }
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="topbar">
+    <div>
+        <div class="topbar-brand">CE<span>VA</span> LOGISTICS</div>
+        <div class="topbar-sub">Herramienta de conteo de ubicaciones</div>
+    </div>
+    <div style="font-size:12px; opacity:.9;">
+        {% block top_right %}{% endblock %}
+    </div>
+</div>
+
+<div class="page-wrapper">
+    {% if messages %}
+        <div class="messages">
+            {% for m in messages %}
+                <div class="message message-{{ m.tags|default:'success' }}">
+                    {{ m }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <footer>
+        © {% now "Y" %} CEVA Logistics · Uso interno
+    </footer>
+</div>
+
+</body>
+</html>
+

@@ -1,24 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Cargar Excel base</title>
-</head>
-<body>
-<h1>Cargar Excel base (PN / Ubicaciones / Descripción)</h1>
+{% extends "app_inventario/base.html" %}
 
-{% if messages %}
-  <ul>
-    {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-  </ul>
-{% endif %}
+{% block title %}Cargar Excel base · CEVA{% endblock %}
 
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  <p><input type="file" name="archivo" accept=".xlsx,.xls" required></p>
-  <button type="submit">Subir e importar</button>
-</form>
+{% block content %}
+<div class="page-header">
+    <h1>Cargar Excel base</h1>
+    <p style="margin:4px 0 0;">PN / Ubicaciones / Descripción</p>
+</div>
 
-<p><a href="{% url 'buscar_material' %}">Volver al inicio</a></p>
-</body>
-</html>
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom:12px;">
+            <label for="id_archivo">Archivo Excel (.xlsx / .xls)</label>
+            <input type="file" id="id_archivo" name="archivo" accept=".xlsx,.xls" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Subir e importar</button>
+        <a href="{% url 'buscar_material' %}" class="btn btn-secondary">Volver al inicio</a>
+    </form>
+</div>
+{% endblock %}

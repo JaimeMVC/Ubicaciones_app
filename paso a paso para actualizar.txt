@@ -1,0 +1,16 @@
+
+5802889562
+5801429391
+
+
+external
+postgresql://ubicaciones_db_user:8MFwHprVqe0mbOzjUTeWMlrz5De7AleC@dpg-d4e56tggjchc73fadf70-a.oregon-postgres.render.com/ubicaciones_db
+
+
+Pasos para actualizar el excel grande desde el CMD
+
+cd "C:\Users\f20263e\OneDrive - Iveco Group\ubicaciones_app"
+venv\Scripts\activate
+set DATABASE_URL=postgresql://ubicaciones_db_user:8MFwHprVqe0mbOzjUTeWMlrz5De7AleC@dpg-d4e56tggjchc73fadf70-a.oregon-postgres.render.com/ubicaciones_db
+set DEBUG=0
+python manage.py import_excel_base.xlsx

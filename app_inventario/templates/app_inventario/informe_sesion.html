@@ -1,61 +1,73 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Informe sesión {{ session.id }} — PN {{ pn }}</title>
-</head>
-<body>
-<h1>Informe de avance — PN {{ pn }}</h1>
+{% extends "app_inventario/base.html" %}
 
-<p>
-  <b>Sesión:</b> {{ session.id }}<br>
-  <b>Operador:</b> {{ session.operador }}<br>
-  <b>Fecha sesión:</b> {{ session.creado_en|date:"d/m/Y H:i" }}<br>
-  <b>Comentario:</b> {{ session.comentario }}
-</p>
+{% block title %}Informe sesión {{ session.id }} · PN {{ pn }}{% endblock %}
 
-<p>
-  <b>Avance:</b> {{ revisadas }} / {{ total }} ({{ porcentaje }}%)
-</p>
+{% block content %}
+<div class="page-header">
+    <h1>Informe de avance</h1>
+    <p style="margin:4px 0 0;">
+        PN <b>{{ pn }}</b> · Sesión <b>#{{ session.id }}</b>
+    </p>
+</div>
 
-<p>
-  <a href="{% url 'exportar_sesion_csv' session.id %}">Descargar CSV de esta sesión</a> |
-  <a href="{% url 'historial_pn' pn %}">Volver al historial del PN</a> |
-  <a href="{% url 'buscar_material' %}">Volver al inicio</a>
-</p>
+<div class="card">
+    <p style="margin:0;">
+        <b>Operador:</b> {{ session.operador }}<br>
+        <b>Fecha sesión:</b> {{ session.creado_en|date:"d/m/Y H:i" }}<br>
+        <b>Comentario:</b> {{ session.comentario }}
+    </p>
 
-<table border="1" cellspacing="0" cellpadding="4">
-  <thead>
-    <tr>
-      <th>Revisado</th>
-      <th>Ubicación</th>
-      <th>Descripción</th>
-      <th>Cantidad</th>
-      <th>Fecha revisión</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in rows %}
-    <tr>
-      <td style="text-align:center;">
-        {% if row.detalle and row.detalle.revisado %}✔{% else %}-{% endif %}
-      </td>
-      <td>{{ row.base.ubicacion }}</td>
-      <td>{{ row.base.descripcion }}</td>
-      <td>
-        {% if row.detalle and row.detalle.cantidad is not None %}
-          {{ row.detalle.cantidad }}
-        {% endif %}
-      </td>
-      <td>
-        {% if row.detalle and row.detalle.fecha_revision %}
-          {{ row.detalle.fecha_revision|date:"d/m/Y H:i" }}
-        {% endif %}
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+    <p style="margin-top:8px;">
+        <b>Avance:</b> {{ revisadas }} / {{ total }} ({{ porcentaje }}%)
+    </p>
 
-</body>
-</html>
+    <div class="actions-inline">
+        <a href="{% url 'exportar_sesion_csv' session.id %}" class="btn btn-primary">
+            Descargar CSV de esta sesión
+        </a>
+        <a href="{% url 'historial_pn' pn %}" class="btn btn-secondary">Volver al historial del PN</a>
+        <a href="{% url 'listado_ubicaciones' pn %}?session={{ session.id }}" class="btn btn-link">
+            Volver al checklist
+        </a>
+        <a href="{% url 'buscar_material' %}" class="btn btn-link">Volver al inicio</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Detalle por ubicación</h3>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="center">Revisado</th>
+                    <th>Ubicación</th>
+                    <th>Descripción</th>
+                    <th class="center">Cantidad</th>
+                    <th>Fecha revisión</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td class="center">
+                        {% if row.detalle and row.detalle.revisado %}✔{% else %}-{% endif %}
+                    </td>
+                    <td>{{ row.base.ubicacion }}</td>
+                    <td>{{ row.base.descripcion }}</td>
+                    <td class="center">
+                        {% if row.detalle and row.detalle.cantidad is not None %}
+                            {{ row.detalle.cantidad }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if row.detalle and row.detalle.fecha_revision %}
+                            {{ row.detalle.fecha_revision|date:"d/m/Y H:i" }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

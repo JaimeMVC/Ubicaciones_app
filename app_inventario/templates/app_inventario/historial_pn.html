@@ -1,45 +1,60 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Historial PN {{ pn }}</title>
-</head>
-<body>
-<h1>Historial de sesiones — PN {{ pn }}</h1>
+{% extends "app_inventario/base.html" %}
 
-<p><a href="{% url 'buscar_material' %}">Volver al buscador</a></p>
+{% block title %}Historial PN {{ pn }} · CEVA{% endblock %}
 
-{% if data %}
-  <table border="1" cellspacing="0" cellpadding="4">
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Operador</th>
-        <th>Total ubicaciones</th>
-        <th>Revisadas</th>
-        <th>%</th>
-        <th>Ver sesión</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for item in data %}
-      <tr>
-        <td>{{ item.session.creado_en|date:"d/m/Y H:i" }}</td>
-        <td>{{ item.session.operador }}</td>
-        <td>{{ item.total }}</td>
-        <td>{{ item.revisadas }}</td>
-        <td>{{ item.porcentaje }}%</td>
-        <td>
-          <a href="{% url 'listado_ubicaciones' pn %}?session={{ item.session.id }}">Checklist</a> |
-          <a href="{% url 'informe_sesion' item.session.id %}">Informe</a>
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No hay sesiones registradas para este PN.</p>
-{% endif %}
-</body>
-</html>
+{% block content %}
+<div class="page-header">
+    <h1>Historial de sesiones</h1>
+    <p style="margin:4px 0 0;">PN <b>{{ pn }}</b></p>
+</div>
 
+<div class="card">
+    {% if data %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Operador</th>
+                        <th>Total ubicaciones</th>
+                        <th>Revisadas</th>
+                        <th>%</th>
+                        <th class="center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for item in data %}
+                    <tr>
+                        <td>{{ item.session.creado_en|date:"d/m/Y H:i" }}</td>
+                        <td>{{ item.session.operador }}</td>
+                        <td>{{ item.total }}</td>
+                        <td>{{ item.revisadas }}</td>
+                        <td>{{ item.porcentaje }}%</td>
+                        <td class="center">
+                            <div class="actions-inline">
+                                <a href="{% url 'listado_ubicaciones' pn %}?session={{ item.session.id }}"
+                                   class="btn btn-secondary">
+                                    Checklist
+                                </a>
+                                <a href="{% url 'informe_sesion' item.session.id %}" class="btn btn-link">
+                                    Informe
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No hay sesiones registradas para este PN.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="actions-inline">
+        <a href="{% url 'buscar_material' %}" class="btn btn-secondary">Volver al buscador</a>
+        <a href="{% url 'listado_ubicaciones' pn %}" class="btn btn-link">Volver al checklist</a>
+    </div>
+</div>
+{% endblock %}
